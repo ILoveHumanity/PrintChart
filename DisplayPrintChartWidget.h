@@ -7,10 +7,7 @@
 #include <QPushButton>
 #include <QChartView>
 #include <QChart>
-
-using Data = QPair<QPointF, QString>;
-using DataList = QList<Data>;
-using DataTable = QList<DataList>;
+#include "ChartCreator.h"
 
 class DisplayPrintChartWidget : public QWidget
 {
@@ -18,8 +15,6 @@ class DisplayPrintChartWidget : public QWidget
 public:
     explicit DisplayPrintChartWidget(QWidget *parent = nullptr);
     ~DisplayPrintChartWidget() = default;
-    QtCharts::QChart *createBarChart() const; // Метод для создания столбчатой диаграммы
-    QtCharts::QChart *createPieChart() const; // Метод для создания круговой диаграммы
     void setData(DataTable);
 
 private slots:
@@ -38,7 +33,6 @@ private:
 private:
     DataTable m_dataTable;
     QComboBox *m_themeComboBox;
-    QCheckBox *m_someCheckBox;
     QComboBox *m_legendComboBox;
     QComboBox *m_typeComboBox; // Указатель на комбобокс выбора типа диаграммы
     QtCharts::QChartView *m_chartView; // Указатель на виджет отображения диаграммы

@@ -1,4 +1,5 @@
 #include "DisplayPrintChartWidget.h"
+
 #include <QtCharts/QChartView>
 #include <QtCharts/QPieSeries>
 #include <QtCharts/QPieSlice>
@@ -28,12 +29,11 @@
 #include <QMessageBox>
 #include <QPdfWriter>
 #include <QPainter>
-//#include <QPageSize>
+#include "ChartCreator.h"
 
 DisplayPrintChartWidget::DisplayPrintChartWidget(QWidget *parent) : QWidget(parent),
     m_dataTable(),
     m_themeComboBox(createThemeBox()),
-    m_someCheckBox(new QCheckBox("Some CheckBox", this)),
     m_legendComboBox(createLegendBox()),
     m_typeComboBox(createTypeBox()),
     m_chartView(new QtCharts::QChartView(this)),
@@ -49,22 +49,15 @@ DisplayPrintChartWidget::DisplayPrintChartWidget(QWidget *parent) : QWidget(pare
     settingsLayout->addWidget(m_typeComboBox);
     settingsLayout->addWidget(new QLabel("Legend:", this));
     settingsLayout->addWidget(m_legendComboBox);
-    settingsLayout->addWidget(m_someCheckBox);
     settingsLayout->addWidget(m_printButton);
     settingsLayout->addStretch();
     baseLayout->addLayout(settingsLayout);
 
-
-    m_chartView->setChart(createBarChart());
     // Funny things happen if the pie slice labels do not fit the screen, so we ignore size policy
     m_chartView->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+
     baseLayout->addWidget(m_chartView);
-
     setLayout(baseLayout);
-
-    // Set defaults
-    m_someCheckBox->setChecked(true);
-    updateUI();
 }
 
 void DisplayPrintChartWidget::connectSignals()
@@ -72,7 +65,6 @@ void DisplayPrintChartWidget::connectSignals()
     connect(m_themeComboBox,
             static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
             this, &DisplayPrintChartWidget::updateUI);
-    connect(m_someCheckBox, &QCheckBox::toggled, this, &DisplayPrintChartWidget::updateUI);
     connect(m_legendComboBox,
             static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
             this, &DisplayPrintChartWidget::updateUI);
@@ -86,24 +78,16 @@ void DisplayPrintChartWidget::connectSignals()
 DataTable DisplayPrintChartWidget::generateRandomData(int listCount, int valueMax, int valueCount)
 {
     DataTable dataTable;
-
     // set seed for random stuff
     qsrand(QTime(0, 0, 0).secsTo(QTime::currentTime()));
 
-    // generate random data
-    for (int i(0); i < listCount; i++) {
-        DataList dataList;
-        qreal yValue(0);
-        for (int j(0); j < valueCount; j++) {
-            yValue = yValue + (qreal)(qrand() % valueMax) / (qreal) valueCount;
-            QPointF value((j + (qreal) rand() / (qreal) RAND_MAX) * ((qreal) valueMax / (qreal) valueCount),
-                          yValue);
-            QString label = "Slice " + QString::number(i) + ":" + QString::number(j);
-            dataList << Data(value, label);
-        }
-        dataTable << dataList;
+    QDateTime now = QDateTime::currentDateTime();
+    for (int i = 0; i < 24; ++i) {
+        Data point;
+        point.first = now.addDays(i); // Каждый день
+        point.second = (qreal)(qrand() % valueMax);      // Какие-то тестовые данные
+        dataTable.append(point);
     }
-
     return dataTable;
 }
 
@@ -142,56 +126,12 @@ QComboBox *DisplayPrintChartWidget::createLegendBox()
     return legendComboBox;
 }
 
-QtCharts::QChart *DisplayPrintChartWidget::createBarChart() const
-{
-    QtCharts::QChart *chart = new QtCharts::QChart();
-    chart->setTitle("Bar chart");
-
-    QtCharts::QStackedBarSeries *series = new QtCharts::QStackedBarSeries(chart);
-    for (int i(0); i < m_dataTable.count(); i++) {
-        QtCharts::QBarSet *set = new QtCharts::QBarSet("Bar set " + QString::number(i));
-        for (const Data &data : m_dataTable[i])
-            *set << data.first.y();
-        series->append(set);
-    }
-    chart->addSeries(series);
-    chart->createDefaultAxes();
-
-    return chart;
-}
-
-QtCharts::QChart *DisplayPrintChartWidget::createPieChart() const
-{
-    QtCharts::QChart *chart = new QtCharts::QChart();
-    chart->setTitle("Pie chart");
-
-    qreal pieSize = 1.0 / m_dataTable.count();
-    for (int i = 0; i < m_dataTable.count(); i++) {
-        QtCharts::QPieSeries *series = new QtCharts::QPieSeries(chart);
-        for (const Data &data : m_dataTable[i]) {
-            QtCharts::QPieSlice *slice = series->append(data.second, data.first.y());
-            if (data == m_dataTable[i].first()) {
-                slice->setLabelVisible();
-                slice->setExploded();
-            }
-        }
-        qreal hPos = (pieSize / 2) + (i / (qreal) m_dataTable.count());
-        series->setPieSize(pieSize);
-        series->setHorizontalPosition(hPos);
-        series->setVerticalPosition(0.5);
-        chart->addSeries(series);
-    }
-
-    return chart;
-}
-
 void DisplayPrintChartWidget::setData(DataTable dataTable)
 {
     Q_UNUSED(dataTable);
     m_dataTable = generateRandomData(3, 10, 7);
-    updateChart();
-
     //m_dataTable = dataTable;
+    updateChart();
 }
 
 void DisplayPrintChartWidget::updateUI()
@@ -199,10 +139,6 @@ void DisplayPrintChartWidget::updateUI()
     QtCharts::QChart::ChartTheme theme = static_cast<QtCharts::QChart::ChartTheme>(
         m_themeComboBox->itemData(m_themeComboBox->currentIndex()).toInt());
     m_chartView->chart()->setTheme(theme);
-
-    // bool checked = m_someCheckBox->isChecked();
-    // nothing
-
 
     Qt::Alignment alignment(m_legendComboBox->itemData(m_legendComboBox->currentIndex()).toInt());
 
@@ -218,10 +154,15 @@ void DisplayPrintChartWidget::updateChart()
 {
     QString newType = m_typeComboBox->itemData(m_typeComboBox->currentIndex()).toString();
     QtCharts::QChart* chart = m_chartView->chart();
+    ChartCreator* chartCreator = nullptr;
     if(newType == "BarChart") {
-        m_chartView->setChart(createBarChart());
+        chartCreator = new BarChartCreator;
     } else if (newType == "PieChart") {
-        m_chartView->setChart(createPieChart());
+        chartCreator = new PieChartCreator;
+    }
+    if(chartCreator) {
+        m_chartView->setChart(chartCreator->createChart(m_dataTable));
+        delete chartCreator;
     }
     delete chart;
     updateUI();
@@ -230,7 +171,7 @@ void DisplayPrintChartWidget::updateChart()
 void DisplayPrintChartWidget::printChart()
 {
     if (!m_chartView) {
-        QMessageBox::warning(this, "Ошибка", "Указатель на график не задан.");
+        QMessageBox::warning(this, "Ошибка", "График не задан.");
         return;
     }
 
@@ -247,20 +188,16 @@ void DisplayPrintChartWidget::printChart()
     }
 
     // Гарантируем расширение .pdf
-    if (!filePath.endsWith(".pdf", Qt::CaseInsensitive)) {
+    if (!filePath.endsWith(".pdf")) {
         filePath += ".pdf";
     }
 
     // 2. Настраиваем генератор PDF
     QPdfWriter pdfWriter(filePath);
-    pdfWriter.setResolution(300); // 300 DPI для четкого векторного/растрового вывода
     pdfWriter.setPageSize(QPagedPaintDevice::A4);
 
     // 3. Рендеринг в PDF
     QPainter painter(&pdfWriter);
-
     m_chartView->render(&painter);
-
-    QMessageBox::information(this, "Успех", "Диаграмма успешно сохранена в PDF.");
     painter.end();
 }
