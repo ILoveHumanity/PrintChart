@@ -42,7 +42,7 @@ DisplayPrintChartWidget::DisplayPrintChartWidget(QWidget *parent) : QWidget(pare
     connectSignals();
     // create layout
     QVBoxLayout *baseLayout = new QVBoxLayout(this);
-    QHBoxLayout *settingsLayout = new QHBoxLayout(this);
+    QHBoxLayout *settingsLayout = new QHBoxLayout();
     settingsLayout->addWidget(new QLabel("Theme:", this));
     settingsLayout->addWidget(m_themeComboBox);
     settingsLayout->addWidget(new QLabel("Type:", this));
@@ -57,7 +57,7 @@ DisplayPrintChartWidget::DisplayPrintChartWidget(QWidget *parent) : QWidget(pare
     m_chartView->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
 
     baseLayout->addWidget(m_chartView);
-    setLayout(baseLayout);
+    //setLayout(baseLayout);
 }
 
 void DisplayPrintChartWidget::connectSignals()
@@ -73,22 +73,6 @@ void DisplayPrintChartWidget::connectSignals()
             this, &DisplayPrintChartWidget::updateChart);
 
     connect(m_printButton, &QPushButton::clicked, this, &DisplayPrintChartWidget::printChart);
-}
-
-DataTable DisplayPrintChartWidget::generateRandomData(int listCount, int valueMax, int valueCount)
-{
-    DataTable dataTable;
-    // set seed for random stuff
-    qsrand(QTime(0, 0, 0).secsTo(QTime::currentTime()));
-
-    QDateTime now = QDateTime::currentDateTime();
-    for (int i = 0; i < 24; ++i) {
-        Data point;
-        point.first = now.addDays(i); // Каждый день
-        point.second = (qreal)(qrand() % valueMax);      // Какие-то тестовые данные
-        dataTable.append(point);
-    }
-    return dataTable;
 }
 
 QComboBox *DisplayPrintChartWidget::createThemeBox()
@@ -128,9 +112,7 @@ QComboBox *DisplayPrintChartWidget::createLegendBox()
 
 void DisplayPrintChartWidget::setData(DataTable dataTable)
 {
-    Q_UNUSED(dataTable);
-    m_dataTable = generateRandomData(3, 10, 7);
-    //m_dataTable = dataTable;
+    m_dataTable = dataTable;
     updateChart();
 }
 

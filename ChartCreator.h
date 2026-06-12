@@ -2,9 +2,9 @@
 #define CHARTCREATOR_H
 
 #include <QChart>
-#include <QDateTime>
+#include <QString>
 
-using Data = QPair<QDateTime, double>;
+using Data = QPair<QString, double>;
 using DataTable = QList<Data>;
 
 QT_CHARTS_USE_NAMESPACE

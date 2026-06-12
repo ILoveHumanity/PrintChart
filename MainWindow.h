@@ -15,8 +15,8 @@ private:
     QTableView *m_tableView;
     DisplayPrintChartWidget *m_displayPrintChartWidget;
 private slots:
-    //void on_selectionChangedSlot(const QItemSelection &selected, const QItemSelection &deselected);
-    void on_currentRowChangedSlot(const QModelIndex &current, const QModelIndex &previous);
+    void on_selectionChangedSlot(const QItemSelection &selected, const QItemSelection &deselected);
+    //void on_currentRowChangedSlot(const QModelIndex &current, const QModelIndex &previous);
 
 public:
     MainWindow(QWidget *parent = nullptr);

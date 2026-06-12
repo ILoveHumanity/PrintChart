@@ -1,4 +1,4 @@
-QT += core gui charts
+QT += core gui charts sql
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -11,13 +11,15 @@ CONFIG += c++17
 SOURCES += \
     ChartCreator.cpp \
     DisplayPrintChartWidget.cpp \
+    RawDataProcessor.cpp \
     main.cpp \
     MainWindow.cpp
 
 HEADERS += \
     ChartCreator.h \
     DisplayPrintChartWidget.h \
-    MainWindow.h
+    MainWindow.h \
+    RawDataProcessor.h
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

@@ -23,7 +23,6 @@ private slots:
     void printChart();
 
 private:
-    DataTable generateRandomData(int listCount, int valueMax, int valueCount);
     QComboBox *createThemeBox();
     QComboBox *createLegendBox();
     QComboBox *createTypeBox();

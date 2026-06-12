@@ -32,7 +32,7 @@ bool BarChartCreator::setChartData(QChart* chart, DataTable dataTable){
     QBarSeries *series = new QBarSeries(chart);
 
     for (const Data &data : dataTable) {
-        QBarSet *set = new QBarSet(data.first.toString());
+        QBarSet *set = new QBarSet(data.first);
         set->append(data.second);
         series->append(set);
     }
@@ -48,7 +48,7 @@ bool PieChartCreator::setChartData(QChart* chart, DataTable dataTable){
     QPieSeries *series = new QPieSeries();
 
     for (const Data &data : dataTable) {
-        series->append(data.first.toString(), data.second);
+        series->append(data.first, data.second);
     }
 
     chart->addSeries(series);

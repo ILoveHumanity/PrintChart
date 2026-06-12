@@ -1,12 +1,11 @@
 #include "MainWindow.h"
+#include "RawDataProcessor.h"
 #include <QLabel>
 #include <QSplitter>
 #include <QStatusBar>
 #include <QVBoxLayout>
 #include <QFileDialog>
-#include <QDockWidget>
-
-
+#include <QFileInfo>
 #include <QListView>
 #include <QFileSystemModel>
 #include <QItemSelectionModel>
@@ -45,52 +44,63 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 
 
         QItemSelectionModel *selectionModel = m_tableView->selectionModel();
-//        //Выполняем соединения слота и сигнала который вызывается когда осуществляется выбор элемента в m_tableView
-//        connect(selectionModel, &QItemSelectionModel::selectionChanged, this, &MainWindow::on_selectionChangedSlot);
-        connect(selectionModel, &QItemSelectionModel::currentRowChanged, this, &MainWindow::on_currentRowChangedSlot);
+        //Выполняем соединения слота и сигнала который вызывается когда осуществляется выбор элемента в m_tableView
+        connect(selectionModel, &QItemSelectionModel::selectionChanged, this, &MainWindow::on_selectionChangedSlot);
+//        connect(selectionModel, &QItemSelectionModel::currentRowChanged, this, &MainWindow::on_currentRowChangedSlot);
     }
     else {
         this->statusBar()->showMessage("Error");
     }
 }
 
-void MainWindow::on_currentRowChangedSlot(const QModelIndex &current, const QModelIndex &previous)
-{
-    Q_UNUSED(previous);
-
-    if (current.isValid()) {
-        QString filePath = m_fileModel->filePath(current);
-        this->statusBar()->showMessage("Выбранный путь : " + filePath);
-
-        m_displayPrintChartWidget->setData(DataTable());
-    }
-}
-
-//void MainWindow::on_selectionChangedSlot(const QItemSelection &selected, const QItemSelection &deselected)
+//void MainWindow::on_currentRowChangedSlot(const QModelIndex &current, const QModelIndex &previous)
 //{
-//    //Q_UNUSED(selected);
-//    Q_UNUSED(deselected);
+//    Q_UNUSED(previous);
 
-//    //QModelIndex index = m_tableView->selectionModel()->currentIndex();
-
-//    QModelIndexList indexs =  selected.indexes();
-
-//    QString filePath = "";
-
-//    // Размещаем информацию в statusbar относительно выделенного модельного индекса
-//    /*
-//     * Смотрим, сколько индексов было выделено.
-//     * В нашем случае выделяем только один, следовательно всегда берем только первый.
-//    */
-//    if (indexs.count() >= 1) {
-//        QModelIndex ix = indexs.constFirst();
-//        filePath = m_fileModel->filePath(ix);
+//    if (current.isValid()) {
+//        QString filePath = m_fileModel->filePath(current);
 //        this->statusBar()->showMessage("Выбранный путь : " + filePath);
-
-//        // get data
 
 //        m_displayPrintChartWidget->setData(DataTable());
 //    }
 //}
+
+void MainWindow::on_selectionChangedSlot(const QItemSelection &selected, const QItemSelection &deselected)
+{
+    //Q_UNUSED(selected);
+    Q_UNUSED(deselected);
+
+    //QModelIndex index = m_tableView->selectionModel()->currentIndex();
+
+    QModelIndexList indexs =  selected.indexes();
+
+    QString filePath = "";
+
+    // Размещаем информацию в statusbar относительно выделенного модельного индекса
+    /*
+     * Смотрим, сколько индексов было выделено.
+     * В нашем случае выделяем только один, следовательно всегда берем только первый.
+    */
+    if (indexs.count() >= 1) {
+        QModelIndex ix = indexs.constFirst();
+        filePath = m_fileModel->filePath(ix);
+        this->statusBar()->showMessage("Выбранный путь : " + filePath);
+        DataTable dataTable;
+        QString suffix = QFileInfo(filePath).suffix();
+
+        RawDataProcessor* rawDataProcessor = nullptr;
+
+        if(suffix == "sqlite") {
+            rawDataProcessor = new SQLiteRawDataProcessor;
+        } else if (suffix == "json") {
+            rawDataProcessor = new JsonRawDataProcessor;
+        }
+        if(rawDataProcessor) {
+            dataTable = rawDataProcessor->getData(filePath);
+            delete rawDataProcessor;
+        }
+        m_displayPrintChartWidget->setData(dataTable);
+    }
+}
 
 
