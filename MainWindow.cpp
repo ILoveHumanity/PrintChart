@@ -25,31 +25,36 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 
     if (!dirPath.isEmpty()) {
         this->statusBar()->showMessage("Choosen Path: " + dirPath);
-
-        m_fileModel = new QFileSystemModel(this);
-        m_fileModel->setFilter(QDir::NoDotAndDotDot | QDir::Files);
-
-        QModelIndex index = m_fileModel->setRootPath(dirPath); //Получили индекс из модели
-
-        m_tableView = new QTableView;
-        m_tableView->setModel(m_fileModel);
-        m_tableView->setRootIndex(index);
-
-        m_displayPrintChartWidget = new DisplayPrintChartWidget();
-
         QSplitter *splitter = new QSplitter(this);
-        splitter->addWidget(m_tableView);
-        splitter->addWidget(m_displayPrintChartWidget);
-        setCentralWidget(splitter);
+        if(splitter){
+            m_fileModel = new QFileSystemModel(this);
+            if(m_fileModel){
+                m_fileModel->setFilter(QDir::NoDotAndDotDot | QDir::Files);
+                QModelIndex index = m_fileModel->setRootPath(dirPath); //Получили индекс из модели
+                m_tableView = new QTableView;
+                if(m_tableView){
+                    m_tableView->setModel(m_fileModel);
+                    m_tableView->setRootIndex(index);
 
+                    splitter->addWidget(m_tableView);
 
-        QItemSelectionModel *selectionModel = m_tableView->selectionModel();
-        //Выполняем соединения слота и сигнала который вызывается когда осуществляется выбор элемента в m_tableView
-        connect(selectionModel, &QItemSelectionModel::selectionChanged, this, &MainWindow::on_selectionChangedSlot);
-//        connect(selectionModel, &QItemSelectionModel::currentRowChanged, this, &MainWindow::on_currentRowChangedSlot);
+                    QItemSelectionModel *selectionModel = m_tableView->selectionModel();
+                    //Выполняем соединения слота и сигнала который вызывается когда осуществляется выбор элемента в m_tableView
+                    connect(selectionModel, &QItemSelectionModel::selectionChanged, this, &MainWindow::on_selectionChangedSlot);
+                    //connect(selectionModel, &QItemSelectionModel::currentRowChanged, this, &MainWindow::on_currentRowChangedSlot);
+                }
+                m_displayPrintChartWidget = new DisplayPrintChartWidget();
+                if(m_displayPrintChartWidget){
+                    splitter->addWidget(m_displayPrintChartWidget);
+
+                    m_displayPrintChartWidget->isOk();
+                }
+            }
+            setCentralWidget(splitter);
+        }
     }
     else {
-        this->statusBar()->showMessage("Error");
+        QMessageBox::critical(this, "Ошибка", "Не выбрана папка с данными");
     }
 }
 
