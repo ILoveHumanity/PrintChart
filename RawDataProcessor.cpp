@@ -1,10 +1,11 @@
 #include "RawDataProcessor.h"
 #include <QtSql>
 #include <QFile>
+#include <stdexcept>
 
-DataTable SQLiteRawDataProcessor::getData(QString filePath){
+DataTable SQLiteRawDataProcessor::getData(QString filePath, QString& Error){
     DataTable dataTable;
-
+    Error = "";
     // Ограничиваем время жизни объекта соединения (sqlitdb) отдельной областью видимости.
     // Это гарантирует, что sqlitdb уничтожится ДО вызова removeDatabase.
     {
@@ -14,7 +15,7 @@ DataTable SQLiteRawDataProcessor::getData(QString filePath){
 
         // Пытаемся открыть базу данных
         if (!sqlitdb.open()) {
-            qDebug() << "Что-то пошло не так!" << sqlitdb.lastError().text();
+            Error = "Не удалось открыть базу данных: " + sqlitdb.lastError().text();
         } else {
             QStringList tables = sqlitdb.tables();
             if(tables.size() >= 1){
@@ -25,7 +26,8 @@ DataTable SQLiteRawDataProcessor::getData(QString filePath){
                         dataTable.append(qMakePair(query.value(0).toString(), query.value(1).toDouble()));
                     }
                 } else {
-                    qDebug() << "Ошибка выполнения запроса:" << query.lastError().text();
+                    sqlitdb.close();
+                    Error = "Ошибка выполнения запроса: " + query.lastError().text();
                 }
             }
             // Закрываем базу данных
@@ -37,9 +39,9 @@ DataTable SQLiteRawDataProcessor::getData(QString filePath){
     return dataTable;
 }
 
-DataTable JsonRawDataProcessor::getData(QString filePath){
+DataTable JsonRawDataProcessor::getData(QString filePath, QString& Error){
     DataTable dataTable;
-
+    Error = "";
     QFile file(filePath);
 
     // Пытаемся открыть файл для чтения
@@ -70,12 +72,10 @@ DataTable JsonRawDataProcessor::getData(QString filePath){
                 }
             }
         } else {
-            // Выводим сообщение об ошибке парсинга в консоль для отладки
-            qDebug() << "Ошибка парсинга JSON:" << errorPtr.errorString();
+            Error = "Ошибка парсинга JSON:" + errorPtr.errorString();
         }
     } else {
-        // Выводим сообщение об ошибке открытия файла
-        qDebug() << "Не удалось открыть файл:" << file.errorString();
+        Error = "Не удалось открыть файл:" + file.errorString();
     }
 
     return dataTable;

@@ -16,6 +16,7 @@ public:
     explicit DisplayPrintChartWidget(QWidget *parent = nullptr);
     ~DisplayPrintChartWidget() = default;
     void setData(DataTable);
+    bool isOk();
 
 private slots:
     void updateChart(); // Слот для обновления изменения типа диаграммы
@@ -30,6 +31,7 @@ private:
     void connectSignals();
 
 private:
+    bool state;
     DataTable m_dataTable;
     QComboBox *m_themeComboBox;
     QComboBox *m_legendComboBox;

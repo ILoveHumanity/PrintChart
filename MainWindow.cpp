@@ -11,6 +11,7 @@
 #include <QItemSelectionModel>
 #include <QTableView>
 #include <QHeaderView>
+#include <QMessageBox>
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
@@ -27,9 +28,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 
         m_fileModel = new QFileSystemModel(this);
         m_fileModel->setFilter(QDir::NoDotAndDotDot | QDir::Files);
-        //Объявили модельный индекс
-        QModelIndex index;
-        index = m_fileModel->setRootPath(dirPath); //Получили индекс из модели
+
+        QModelIndex index = m_fileModel->setRootPath(dirPath); //Получили индекс из модели
 
         m_tableView = new QTableView;
         m_tableView->setModel(m_fileModel);
@@ -89,18 +89,26 @@ void MainWindow::on_selectionChangedSlot(const QItemSelection &selected, const Q
         QString suffix = QFileInfo(filePath).suffix();
 
         RawDataProcessor* rawDataProcessor = nullptr;
-
+        QString Error;
         if(suffix == "sqlite") {
             rawDataProcessor = new SQLiteRawDataProcessor;
         } else if (suffix == "json") {
             rawDataProcessor = new JsonRawDataProcessor;
+        } else {
+            QMessageBox::critical(this, "Ошибка", "Неподдерживаемый формат данных.");
+            return;
         }
         if(rawDataProcessor) {
-            dataTable = rawDataProcessor->getData(filePath);
+            dataTable = rawDataProcessor->getData(filePath, Error);
             delete rawDataProcessor;
+            if(Error.isEmpty()){
+                m_displayPrintChartWidget->setData(dataTable);
+            } else {
+                QMessageBox::critical(this, "Ошибка обработки данных", Error);
+            }
         }
-        m_displayPrintChartWidget->setData(dataTable);
     }
+    return;
 }
 
 

@@ -32,6 +32,7 @@
 #include "ChartCreator.h"
 
 DisplayPrintChartWidget::DisplayPrintChartWidget(QWidget *parent) : QWidget(parent),
+    state(true),
     m_dataTable(),
     m_themeComboBox(createThemeBox()),
     m_legendComboBox(createLegendBox()),
@@ -39,25 +40,34 @@ DisplayPrintChartWidget::DisplayPrintChartWidget(QWidget *parent) : QWidget(pare
     m_chartView(new QtCharts::QChartView(this)),
     m_printButton(new QPushButton("Печать", this))
 {
-    connectSignals();
-    // create layout
-    QVBoxLayout *baseLayout = new QVBoxLayout(this);
-    QHBoxLayout *settingsLayout = new QHBoxLayout();
-    settingsLayout->addWidget(new QLabel("Theme:", this));
-    settingsLayout->addWidget(m_themeComboBox);
-    settingsLayout->addWidget(new QLabel("Type:", this));
-    settingsLayout->addWidget(m_typeComboBox);
-    settingsLayout->addWidget(new QLabel("Legend:", this));
-    settingsLayout->addWidget(m_legendComboBox);
-    settingsLayout->addWidget(m_printButton);
-    settingsLayout->addStretch();
-    baseLayout->addLayout(settingsLayout);
-
-    // Funny things happen if the pie slice labels do not fit the screen, so we ignore size policy
-    m_chartView->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
-
-    baseLayout->addWidget(m_chartView);
-    //setLayout(baseLayout);
+    if(!m_themeComboBox || !m_legendComboBox || !m_typeComboBox || !m_chartView || !m_printButton){
+        state = false;
+    } else {
+        connectSignals();
+        // create layout
+        QVBoxLayout *baseLayout = new QVBoxLayout(this);
+        if(baseLayout){
+            QHBoxLayout *settingsLayout = new QHBoxLayout();
+            if(settingsLayout){
+                settingsLayout->addWidget(new QLabel("Theme:", this));
+                settingsLayout->addWidget(m_themeComboBox);
+                settingsLayout->addWidget(new QLabel("Type:", this));
+                settingsLayout->addWidget(m_typeComboBox);
+                settingsLayout->addWidget(new QLabel("Legend:", this));
+                settingsLayout->addWidget(m_legendComboBox);
+                settingsLayout->addWidget(m_printButton);
+                settingsLayout->addStretch();
+                baseLayout->addLayout(settingsLayout);
+            } else {
+                state = false;
+            }
+            m_chartView->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+            baseLayout->addWidget(m_chartView);
+        } else {
+            state = false;
+        }
+        m_printButton->setEnabled(false);
+    }
 }
 
 void DisplayPrintChartWidget::connectSignals()
@@ -79,14 +89,17 @@ QComboBox *DisplayPrintChartWidget::createThemeBox()
 {
     // settings layout
     QComboBox *themeComboBox = new QComboBox(this);
-    themeComboBox->addItem("Light", QtCharts::QChart::ChartThemeLight);
-    themeComboBox->addItem("Blue Cerulean", QtCharts::QChart::ChartThemeBlueCerulean);
-    themeComboBox->addItem("Dark", QtCharts::QChart::ChartThemeDark);
-    themeComboBox->addItem("Brown Sand", QtCharts::QChart::ChartThemeBrownSand);
-    themeComboBox->addItem("Blue NCS", QtCharts::QChart::ChartThemeBlueNcs);
-    themeComboBox->addItem("High Contrast", QtCharts::QChart::ChartThemeHighContrast);
-    themeComboBox->addItem("Blue Icy", QtCharts::QChart::ChartThemeBlueIcy);
-    themeComboBox->addItem("Qt", QtCharts::QChart::ChartThemeQt);
+    if(themeComboBox){
+        themeComboBox->addItem("Light", QtCharts::QChart::ChartThemeLight);
+        themeComboBox->addItem("Blue Cerulean", QtCharts::QChart::ChartThemeBlueCerulean);
+        themeComboBox->addItem("Dark", QtCharts::QChart::ChartThemeDark);
+        themeComboBox->addItem("Brown Sand", QtCharts::QChart::ChartThemeBrownSand);
+        themeComboBox->addItem("Blue NCS", QtCharts::QChart::ChartThemeBlueNcs);
+        themeComboBox->addItem("High Contrast", QtCharts::QChart::ChartThemeHighContrast);
+        themeComboBox->addItem("Blue Icy", QtCharts::QChart::ChartThemeBlueIcy);
+        themeComboBox->addItem("Qt", QtCharts::QChart::ChartThemeQt);
+        themeComboBox->addItem("Black and White", 8);
+    }
     return themeComboBox;
 }
 
@@ -94,33 +107,73 @@ QComboBox *DisplayPrintChartWidget::createTypeBox()
 {
     // settings layout
     QComboBox *typeComboBox = new QComboBox(this);
-    typeComboBox->addItem("BarChart", "BarChart");
-    typeComboBox->addItem("PieChart", "PieChart");
+    if(typeComboBox){
+        typeComboBox->addItem("BarChart", "BarChart");
+        typeComboBox->addItem("PieChart", "PieChart");
+    }
     return typeComboBox;
 }
 
 QComboBox *DisplayPrintChartWidget::createLegendBox()
 {
     QComboBox *legendComboBox = new QComboBox(this);
-    legendComboBox->addItem("No Legend ", 0);
-    legendComboBox->addItem("Legend Top", Qt::AlignTop);
-    legendComboBox->addItem("Legend Bottom", Qt::AlignBottom);
-    legendComboBox->addItem("Legend Left", Qt::AlignLeft);
-    legendComboBox->addItem("Legend Right", Qt::AlignRight);
+    if(legendComboBox){
+        legendComboBox->addItem("No Legend ", 0);
+        legendComboBox->addItem("Legend Top", Qt::AlignTop);
+        legendComboBox->addItem("Legend Bottom", Qt::AlignBottom);
+        legendComboBox->addItem("Legend Left", Qt::AlignLeft);
+        legendComboBox->addItem("Legend Right", Qt::AlignRight);
+    }
     return legendComboBox;
 }
 
 void DisplayPrintChartWidget::setData(DataTable dataTable)
 {
+    if(!state){
+        return;
+    }
     m_dataTable = dataTable;
+    m_printButton->setEnabled(true);
     updateChart();
 }
 
 void DisplayPrintChartWidget::updateUI()
 {
-    QtCharts::QChart::ChartTheme theme = static_cast<QtCharts::QChart::ChartTheme>(
-        m_themeComboBox->itemData(m_themeComboBox->currentIndex()).toInt());
-    m_chartView->chart()->setTheme(theme);
+    if(!state || !m_chartView->chart()){
+        return;
+    }
+
+    int themeData = m_themeComboBox->itemData(m_themeComboBox->currentIndex()).toInt();
+    // Проверяем, выбрана ли черно-белая тема
+    if (themeData == 8) {
+        QChart *chart = m_chartView->chart();
+
+        // Устанавливаем белый фон
+        chart->setBackgroundBrush(QBrush(Qt::white));
+        chart->setPlotAreaBackgroundBrush(QBrush(Qt::white));
+
+        // Настраиваем цвета серий
+        for (QAbstractSeries *series : chart->series()) {
+
+            if (auto barSeries = qobject_cast<QBarSeries*>(series)) {
+                for (QBarSet *barSet : barSeries->barSets()) {
+                    barSet->setColor(Qt::gray);
+                    barSet->setLabelColor(Qt::black);
+                }
+            } else if (auto pieSeries = qobject_cast<QPieSeries*>(series)) {
+                for (QPieSlice *slice : pieSeries->slices()) {
+                    slice->setColor(Qt::gray);
+                    slice->setLabelColor(Qt::black);
+                    slice->setBorderColor(Qt::black);
+                }
+            }
+
+            series->setVisible(true);
+        }
+    } else {
+        QtCharts::QChart::ChartTheme theme = static_cast<QtCharts::QChart::ChartTheme>(themeData);
+        m_chartView->chart()->setTheme(theme);
+    }
 
     Qt::Alignment alignment(m_legendComboBox->itemData(m_legendComboBox->currentIndex()).toInt());
 
@@ -134,6 +187,9 @@ void DisplayPrintChartWidget::updateUI()
 
 void DisplayPrintChartWidget::updateChart()
 {
+    if(!state || m_dataTable.empty()){
+        return;
+    }
     QString newType = m_typeComboBox->itemData(m_typeComboBox->currentIndex()).toString();
     QtCharts::QChart* chart = m_chartView->chart();
     ChartCreator* chartCreator = nullptr;
@@ -146,14 +202,15 @@ void DisplayPrintChartWidget::updateChart()
         m_chartView->setChart(chartCreator->createChart(m_dataTable));
         delete chartCreator;
     }
-    delete chart;
+    if(chart) {
+        delete chart;
+    }
     updateUI();
 }
 
 void DisplayPrintChartWidget::printChart()
 {
-    if (!m_chartView) {
-        QMessageBox::warning(this, "Ошибка", "График не задан.");
+    if(!state){
         return;
     }
 
