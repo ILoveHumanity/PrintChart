@@ -127,6 +127,11 @@ QComboBox *DisplayPrintChartWidget::createLegendBox()
     return legendComboBox;
 }
 
+bool DisplayPrintChartWidget::isOk()
+{
+    return state;
+}
+
 void DisplayPrintChartWidget::setData(DataTable dataTable)
 {
     if(!state){
